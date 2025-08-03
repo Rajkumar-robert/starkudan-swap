@@ -1,14 +1,11 @@
 #[cfg(test)]
 mod TestEscrowSrc {
-    use starknet::ContractAddress;
-    use starknet::contract_address_const;
-    use starknet::syscalls::deploy_syscall;
-    use starknet::testing::{start_cheat_block_timestamp_global, stop_cheat_block_timestamp_global};
-    use starkware::cairo.common.cairo_builtins import HashBuiltin;
-    use starkware.cairo.common.uint256 import Uint256;
-    use super::super::src::contracts::EscrowSrc;
-    use super::super::src::interfaces::IERC20;
-    use super::super::src::utils::HashUtils;
+ use starknet::{ContractAddress, contract_address_const, deploy_syscall};
+    use starknet::testing::{set_caller_address, start_cheat_block_timestamp_global, stop_cheat_block_timestamp_global};
+    use starknet::Uint256;
+    use starkudan_swap::contracts::escrow_src;
+    use starkudan_swap::interfaces::ierc20;
+    use starkudan_swap::utils::hash_utils;
 
     // Mock ERC20 contract for testing
     #[starknet::contract]
@@ -85,7 +82,8 @@ mod TestEscrowSrc {
             array![].span(),
             false
         ).unwrap_syscall();
-        let escrow_dispatcher = EscrowSrc::IDispatcher { contract_address: escrow_address };
+        let escrow_dispatcher = escrow_src::IEscrowSrcDispatcher { contract_address: escrow_address }
+            .lock_funds(1, recipient, token_address, amount, hashlock, timelock);
 
         // Setup addresses
         let sender = contract_address_const::<1>();
