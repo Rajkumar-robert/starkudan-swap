@@ -7,15 +7,16 @@ use starknet::get_contract_address;
 
 use core::integer::u256;
 use core::serde::Serde;
-use starkudan_swap::interfaces::iescrow_src::IEscrowSrc;
-use starkudan_swap::interfaces::iescrow_src::{EscrowDetails as IEscrowDetails};
+// use starkudan_swap::interfaces::iescrow_src::IEscrowSrc;
+// use starkudan_swap::interfaces::iescrow_src::{EscrowDetails as IEscrowDetails};
 use starkudan_swap::utils::htlc_validator;
 use starkudan_swap::utils::timestamp;
 
 #[starknet::contract]
 mod EscrowSrc {
-    use starknet::storage::Map;
+    use crate::interfaces::iescrow_src::EscrowDetails as IEscrowDetails;
 
+    use starknet::storage::{Map, StorageMapReadAccess, StorageMapWriteAccess};
     #[storage]
     struct Storage {
         escrows: Map<felt252, IEscrowDetails>,
