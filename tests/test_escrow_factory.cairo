@@ -4,7 +4,7 @@ mod TestEscrowFactory {
     use starknet::contract_address_const;
     use starknet::syscalls::deploy_syscall;
     use starkware.cairo.common.cairo_builtins import HashBuiltin;
-    use starkware.cairo.common.uint256 import Uint256;
+
     use super::super::src::contracts::{EscrowSrc, EscrowFactory};
     use super::super::src::interfaces::IERC20;
     use super::super::src::utils::HashUtils;
@@ -15,7 +15,7 @@ mod TestEscrowFactory {
         // Same as in test_escrow_src.cairo
         use starknet::ContractAddress;
         use starkware::cairo.common.cairo_builtins import HashBuiltin;
-        use starkware::cairo.common.uint256 import Uint256, uint256_add;
+    
 
         #[storage]
         struct Storage {
