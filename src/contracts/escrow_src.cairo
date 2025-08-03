@@ -1,8 +1,8 @@
 #[starknet::contract]
 mod EscrowSrc {
-    use starknet::{ContractAddress, get_caller_address, get_contract_address, StorageMap};
-    use starknet::Uint256;
-    use starkudan_swap::interfaces::ierc20::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use starknet::{ContractAddress, get_caller_address, get_contract_address};
+    use starknet::storage::Map;
+    use openzeppelin_token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
     use starkudan_swap::utils::{hash_utils, timestamp};
     use starkudan_swap::contracts::htlc_validator;
 
@@ -19,7 +19,7 @@ mod EscrowSrc {
         sender: ContractAddress,
         recipient: ContractAddress,
         token: ContractAddress,
-        amount: Uint256,
+        amount: u256,
         hashlock: felt252,
         timelock: u64,
         status: felt252, // 0: Open, 1: Claimed, 2: Refunded
@@ -59,7 +59,7 @@ mod EscrowSrc {
         let escrow = self.escrows.read(escrow_id);
         assert(escrow.status == 0, 'Escrow not open');
         let is_valid = htlc_validator::validate_htlc(secret, escrow.hashlock, escrow.timelock);
-        assert(is_valid, 'Invalid secret or timelock');
+        assert(is_valid == 1, 'Invalid secret or timelock');
 
         IERC20Dispatcher { contract_address: escrow.token }.transfer(escrow.recipient, escrow.amount);
 
@@ -81,8 +81,8 @@ mod EscrowSrc {
     fn refund_funds(ref self: ContractState, escrow_id: felt252) {
         let escrow = self.escrows.read(escrow_id);
         assert(escrow.status == 0, 'Escrow not open');
-        let is_expired = starkudan_swap::utils::timestamp::check_timelock(escrow.timelock);
-        assert(is_expired, 'Timelock not expired');
+        let is_expired = timestamp::check_timelock(escrow.timelock);
+        assert(is_expired == 1, 'Timelock not expired');
 
         IERC20Dispatcher { contract_address: escrow.token }.transfer(escrow.sender, escrow.amount);
 
@@ -100,7 +100,7 @@ mod EscrowSrc {
         );
     }
 
-    #[external(v0)]
+    #[view]
     fn get_escrow(self: @ContractState, escrow_id: felt252) -> EscrowDetails {
         self.escrows.read(escrow_id)
     }

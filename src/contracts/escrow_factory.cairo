@@ -1,14 +1,14 @@
 #[starknet::contract]
 mod EscrowFactory {
-    use starknet::{ContractAddress, get_caller_address, ClassHash, StorageMap};
+    use starknet::{ContractAddress, get_caller_address, ClassHash};
+    use starknet::storage::Map;
     use starknet::syscalls::deploy_syscall;
-    use starknet::Uint256;
     use starkudan_swap::interfaces::iescrow_src::{IEscrowSrcDispatcher, IEscrowSrcDispatcherTrait};
 
     // Storage for deployed escrows
     #[storage]
     struct Storage {
-        deployed_escrows: StorageMap<u64, ContractAddress>,
+        deployed_escrows: Map<u64, ContractAddress>,
         escrow_count: u64,
     }
 
@@ -19,7 +19,7 @@ mod EscrowFactory {
         class_hash: ClassHash,
         recipient: ContractAddress,
         token: ContractAddress,
-        amount: Uint256,
+        amount: u256,
         hashlock: felt252,
         timelock: u64
     ) -> ContractAddress {
