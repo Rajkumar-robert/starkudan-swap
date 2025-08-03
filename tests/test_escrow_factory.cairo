@@ -14,23 +14,24 @@ mod TestEscrowFactory {
     mod MockERC20 {
         // Same as in test_escrow_src.cairo
         use starknet::ContractAddress;
-        use starkware.cairo.common.cairo_builtins import HashBuiltin;
-        use starkware.cairo.common.uint256 import Uint256, uint256_add;
+        use starkware::cairo.common.cairo_builtins import HashBuiltin;
+        use starkware::cairo.common.uint256 import Uint256, uint256_add;
 
         #[storage]
         struct Storage {
-            balances: LegacyMap::<ContractAddress, Uint256>,
-            allowances: LegacyMap::<(ContractAddress, ContractAddress), Uint256>,
+            balances: LegacyMap::<ContractAddress, u256>,
+            allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>,
         }
 
         #[external(v0)]
-        fn transfer(ref self: ContractState, recipient: ContractAddress, amount: Uint256) {
+        fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) {
             let caller = starknet::get_caller_address();
             let current_balance = self.balances.read(caller);
             assert(current_balance >= amount, 'Insufficient balance');
             self.balances.write(caller, current_balance - amount);
             let recipient_balance = self.balances.read(recipient);
-            self.balances.write(recipient, recipient_balance + amount);
+            let (new_recipient_balance, _) = uint256_add(recipient_balance, amount);
+            self.balances.write(recipient, new_recipient_balance);
         }
 
         #[external(v0)]
@@ -43,7 +44,8 @@ mod TestEscrowFactory {
             self.balances.write(sender, sender_balance - amount);
             self.allowances.write((sender, caller), allowance - amount);
             let recipient_balance = self.balances.read(recipient);
-            self.balances.write(recipient, recipient_balance + amount);
+            let (new_recipient_balance, _) = uint256_add(recipient_balance, amount);
+            self.balances.write(recipient, new_recipient_balance);
         }
 
         #[external(v0)]
@@ -60,7 +62,8 @@ mod TestEscrowFactory {
         #[external(v0)]
         fn mint(ref self: ContractState, to: ContractAddress, amount: Uint256) {
             let current_balance = self.balances.read(to);
-            self.balances.write(to, current_balance + amount);
+            let (new_balance, _) = uint256_add(current_balance, amount);
+            self.balances.write(to, new_balance);
         }
     }
 
@@ -73,6 +76,7 @@ mod TestEscrowFactory {
             array![].span(),
             false
         ).unwrap_syscall();
+        let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
 
         // Deploy EscrowFactory
         let (factory_address, _) = deploy_syscall(
@@ -81,6 +85,7 @@ mod TestEscrowFactory {
             array![].span(),
             false
         ).unwrap_syscall();
+        let factory_dispatcher = EscrowFactory::IDispatcher { contract_address: factory_address };
 
         // Setup addresses
         let sender = contract_address_const::<1>();
@@ -92,15 +97,14 @@ mod TestEscrowFactory {
 
         // Mint tokens to sender
         starknet::testing::set_caller_address(sender);
-        MockERC20::mint(token_address, sender, amount);
+        token_dispatcher.mint(sender, amount);
 
         // Approve factory contract
-        MockERC20::approve(token_address, factory_address, amount);
+        token_dispatcher.approve(factory_address, amount);
 
         // Deploy escrow via factory
         let escrow_class_hash = EscrowSrc::TEST_CLASS_HASH;
-        let escrow_address = EscrowFactory::deploy_escrow(
-            factory_address,
+        let escrow_address = factory_dispatcher.deploy_escrow(
             escrow_class_hash,
             recipient,
             token_address,
@@ -110,11 +114,12 @@ mod TestEscrowFactory {
         );
 
         // Verify escrow deployment
-        let deployed_address = EscrowFactory::get_escrow_address(factory_address, 0);
+        let deployed_address = factory_dispatcher.get_escrow_address(0);
         assert(deployed_address == escrow_address, 'Invalid escrow address');
 
         // Check escrow details
-        let escrow = EscrowSrc::get_escrow(escrow_address, 0);
+        let escrow_dispatcher = EscrowSrc::IDispatcher { contract_address: escrow_address };
+        let escrow = escrow_dispatcher.get_escrow(0);
         assert(escrow.sender == sender, 'Invalid sender');
         assert(escrow.recipient == recipient, 'Invalid recipient');
         assert(escrow.amount == amount, 'Invalid amount');

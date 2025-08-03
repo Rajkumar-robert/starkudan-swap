@@ -4,7 +4,7 @@ mod TestEscrowSrc {
     use starknet::contract_address_const;
     use starknet::syscalls::deploy_syscall;
     use starknet::testing::{start_cheat_block_timestamp_global, stop_cheat_block_timestamp_global};
-    use starkware.cairo.common.cairo_builtins import HashBuiltin;
+    use starkware::cairo.common.cairo_builtins import HashBuiltin;
     use starkware.cairo.common.uint256 import Uint256;
     use super::super::src::contracts::EscrowSrc;
     use super::super::src::interfaces::IERC20;
@@ -19,18 +19,19 @@ mod TestEscrowSrc {
 
         #[storage]
         struct Storage {
-            balances: LegacyMap::<ContractAddress, Uint256>,
-            allowances: LegacyMap::<(ContractAddress, ContractAddress), Uint256>,
+            balances: LegacyMap::<ContractAddress, u256>,
+            allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>,
         }
 
         #[external(v0)]
-        fn transfer(ref self: ContractState, recipient: ContractAddress, amount: Uint256) {
+        fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) {
             let caller = starknet::get_caller_address();
             let current_balance = self.balances.read(caller);
             assert(current_balance >= amount, 'Insufficient balance');
             self.balances.write(caller, current_balance - amount);
             let recipient_balance = self.balances.read(recipient);
-            self.balances.write(recipient, recipient_balance + amount);
+            let (new_recipient_balance, _) = uint256_add(recipient_balance, amount);
+            self.balances.write(recipient, new_recipient_balance);
         }
 
         #[external(v0)]
@@ -43,7 +44,8 @@ mod TestEscrowSrc {
             self.balances.write(sender, sender_balance - amount);
             self.allowances.write((sender, caller), allowance - amount);
             let recipient_balance = self.balances.read(recipient);
-            self.balances.write(recipient, recipient_balance + amount);
+            let (new_recipient_balance, _) = uint256_add(recipient_balance, amount);
+            self.balances.write(recipient, new_recipient_balance);
         }
 
         #[external(v0)]
@@ -60,7 +62,8 @@ mod TestEscrowSrc {
         #[external(v0)]
         fn mint(ref self: ContractState, to: ContractAddress, amount: Uint256) {
             let current_balance = self.balances.read(to);
-            self.balances.write(to, current_balance + amount);
+            let (new_balance, _) = uint256_add(current_balance, amount);
+            self.balances.write(to, new_balance);
         }
     }
 
@@ -73,6 +76,7 @@ mod TestEscrowSrc {
             array![].span(),
             false
         ).unwrap_syscall();
+        let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
 
         // Deploy EscrowSrc
         let (escrow_address, _) = deploy_syscall(
@@ -81,6 +85,7 @@ mod TestEscrowSrc {
             array![].span(),
             false
         ).unwrap_syscall();
+        let escrow_dispatcher = EscrowSrc::IDispatcher { contract_address: escrow_address };
 
         // Setup addresses
         let sender = contract_address_const::<1>();
@@ -92,14 +97,13 @@ mod TestEscrowSrc {
 
         // Mint tokens to sender
         starknet::testing::set_caller_address(sender);
-        MockERC20::mint(token_address, sender, amount);
+        token_dispatcher.mint(sender, amount);
 
         // Approve escrow contract
-        MockERC20::approve(token_address, escrow_address, amount);
+        token_dispatcher.approve(escrow_address, amount);
 
         // Lock funds
-        EscrowSrc::lock_funds(
-            escrow_address,
+        escrow_dispatcher.lock_funds(
             1,
             recipient,
             token_address,
@@ -109,7 +113,7 @@ mod TestEscrowSrc {
         );
 
         // Check escrow details
-        let escrow = EscrowSrc::get_escrow(escrow_address, 1);
+        let escrow = escrow_dispatcher.get_escrow(1);
         assert(escrow.sender == sender, 'Invalid sender');
         assert(escrow.recipient == recipient, 'Invalid recipient');
         assert(escrow.amount == amount, 'Invalid amount');
@@ -117,12 +121,12 @@ mod TestEscrowSrc {
 
         // Claim funds
         starknet::testing::set_caller_address(recipient);
-        EscrowSrc::claim_funds(escrow_address, 1, secret);
+        escrow_dispatcher.claim_funds(1, secret);
 
         // Verify claim
-        let escrow_after = EscrowSrc::get_escrow(escrow_address, 1);
+        let escrow_after = escrow_dispatcher.get_escrow(1);
         assert(escrow_after.status == 1, 'Claim failed');
-        let recipient_balance = MockERC20::balance_of(token_address, recipient);
+        let recipient_balance = token_dispatcher.balance_of(recipient);
         assert(recipient_balance == amount, 'Transfer failed');
     }
 
@@ -135,6 +139,7 @@ mod TestEscrowSrc {
             array![].span(),
             false
         ).unwrap_syscall();
+        let token_dispatcher = IERC20Dispatcher { contract_address: token_address };
 
         // Deploy EscrowSrc
         let (escrow_address, _) = deploy_syscall(
@@ -143,6 +148,7 @@ mod TestEscrowSrc {
             array![].span(),
             false
         ).unwrap_syscall();
+        let escrow_dispatcher = EscrowSrc::IDispatcher { contract_address: escrow_address };
 
         // Setup addresses
         let sender = contract_address_const::<1>();
@@ -154,14 +160,13 @@ mod TestEscrowSrc {
 
         // Mint tokens to sender
         starknet::testing::set_caller_address(sender);
-        MockERC20::mint(token_address, sender, amount);
+        token_dispatcher.mint(sender, amount);
 
         // Approve escrow contract
-        MockERC20::approve(token_address, escrow_address, amount);
+        token_dispatcher.approve(escrow_address, amount);
 
         // Lock funds
-        EscrowSrc::lock_funds(
-            escrow_address,
+        escrow_dispatcher.lock_funds(
             1,
             recipient,
             token_address,
@@ -175,12 +180,12 @@ mod TestEscrowSrc {
 
         // Refund funds
         starknet::testing::set_caller_address(sender);
-        EscrowSrc::refund_funds(escrow_address, 1);
+        escrow_dispatcher.refund_funds(1);
 
         // Verify refund
-        let escrow_after = EscrowSrc::get_escrow(escrow_address, 1);
+        let escrow_after = escrow_dispatcher.get_escrow(1);
         assert(escrow_after.status == 2, 'Refund failed');
-        let sender_balance = MockERC20::balance_of(token_address, sender);
+        let sender_balance = token_dispatcher.balance_of(sender);
         assert(sender_balance == amount, 'Refund transfer failed');
 
         stop_cheat_block_timestamp_global();
