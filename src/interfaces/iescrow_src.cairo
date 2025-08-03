@@ -24,7 +24,6 @@ pub trait IEscrowSrc<TContractState> {
         escrow_id: felt252
     );
 
-    #[view]
     fn get_escrow(
         self: @TContractState,
         escrow_id: felt252

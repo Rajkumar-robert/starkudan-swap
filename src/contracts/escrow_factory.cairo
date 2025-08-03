@@ -57,7 +57,7 @@ use crate::interfaces::iescrow_src::{
         escrow_address
     }
 
-    #[view]
+
     fn get_escrow_address(
         self: @ContractState,
         escrow_id: u64

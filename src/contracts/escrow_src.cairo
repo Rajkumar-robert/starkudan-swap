@@ -1,13 +1,9 @@
 use openzeppelin_token::erc20::interface::{
     IERC20Dispatcher, IERC20DispatcherTrait
 };
-use starknet::ContractAddress;
-use starknet::get_caller_address;
-use starknet::get_contract_address;
-
 use core::integer::u256;
 use core::serde::Serde;
-use starkudan_swap::interfaces::iescrow_src::IEscrowSrc;
+use starkudan_swap::interfaces::iescrow_src::{IEscrowSrc};
 // use starkudan_swap::interfaces::iescrow_src::{EscrowDetails as IEscrowDetails};
 use starkudan_swap::utils::htlc_validator;
 use starkudan_swap::utils::timestamp;
@@ -15,8 +11,10 @@ use starkudan_swap::utils::timestamp;
 #[starknet::contract]
 mod EscrowSrc {
     use crate::interfaces::iescrow_src::EscrowDetails as IEscrowDetails;
-
     use starknet::storage::{Map, StorageMapReadAccess, StorageMapWriteAccess};
+    use starknet::ContractAddress;
+    use starknet::get_caller_address;
+    use starknet::get_contract_address;
     #[storage]
     struct Storage {
         escrows: Map<felt252, IEscrowDetails>,
@@ -24,8 +22,6 @@ mod EscrowSrc {
 
     #[abi(embed_v0)]
     impl EscrowSrcImpl of IEscrowSrc<ContractState> {
-
-
         fn lock_funds(
             ref self: ContractState,
             escrow_id: felt252,
@@ -103,7 +99,6 @@ mod EscrowSrc {
             self.escrows.write(escrow_id, updated);
         }
 
-        #[view]
         fn get_escrow(
             self: @ContractState,
             escrow_id: felt252
