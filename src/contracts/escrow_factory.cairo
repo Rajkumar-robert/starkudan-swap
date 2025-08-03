@@ -13,7 +13,7 @@ mod EscrowFactory {
     }
 
     // Deploy a new EscrowSrc contract
-    #[external(v0)]
+    #[abi(embed_v0)]
     fn deploy_escrow(
         ref self: ContractState,
         class_hash: ClassHash,
