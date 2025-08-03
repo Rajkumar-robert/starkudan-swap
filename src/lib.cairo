@@ -1,4 +1,5 @@
-// Export all public modules
+mod starkudan_swap;
+
 pub mod contracts {
     pub mod escrow_src;
     pub mod htlc_validator;
@@ -7,6 +8,7 @@ pub mod contracts {
 
 pub mod interfaces {
     pub mod ierc20;
+    pub mod iescrow_src;  // Add this
 }
 
 pub mod utils {
