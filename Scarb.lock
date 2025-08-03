@@ -2,6 +2,44 @@
 version = 1
 
 [[package]]
+name = "openzeppelin_access"
+version = "2.0.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v2.0.0#f1c15a30a44311166e0368081c5f79ab5a02c1d3"
+dependencies = [
+ "openzeppelin_introspection",
+]
+
+[[package]]
+name = "openzeppelin_account"
+version = "2.0.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v2.0.0#f1c15a30a44311166e0368081c5f79ab5a02c1d3"
+dependencies = [
+ "openzeppelin_introspection",
+ "openzeppelin_utils",
+]
+
+[[package]]
+name = "openzeppelin_introspection"
+version = "2.0.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v2.0.0#f1c15a30a44311166e0368081c5f79ab5a02c1d3"
+
+[[package]]
+name = "openzeppelin_token"
+version = "2.0.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v2.0.0#f1c15a30a44311166e0368081c5f79ab5a02c1d3"
+dependencies = [
+ "openzeppelin_access",
+ "openzeppelin_account",
+ "openzeppelin_introspection",
+ "openzeppelin_utils",
+]
+
+[[package]]
+name = "openzeppelin_utils"
+version = "2.0.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v2.0.0#f1c15a30a44311166e0368081c5f79ab5a02c1d3"
+
+[[package]]
 name = "snforge_scarb_plugin"
 version = "0.47.0"
 source = "registry+https://scarbs.xyz/"
@@ -20,5 +58,6 @@ dependencies = [
 name = "starkudan_swap"
 version = "0.1.0"
 dependencies = [
+ "openzeppelin_token",
  "snforge_std",
 ]
