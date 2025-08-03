@@ -1,11 +1,34 @@
+// File: src/interfaces/ierc20.cairo
+
+use starknet::ContractAddress;
+use core::integer::u256;
+
 #[starknet::interface]
-trait IERC20<TContractState> {
-    fn transfer(self: @TContractState, recipient: ContractAddress, amount: Uint256);
+pub trait IERC20<TContractState> {
+    fn total_supply(self: @TContractState) -> u256;
+    fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
+    fn allowance(
+        self: @TContractState,
+        owner: ContractAddress,
+        spender: ContractAddress
+    ) -> u256;
+
+    fn transfer(
+        ref self: TContractState,
+        recipient: ContractAddress,
+        amount: u256
+    ) -> bool;
+
     fn transfer_from(
-        self: @TContractState, 
-        sender: ContractAddress, 
-        recipient: ContractAddress, 
-        amount: Uint256
-    );
-    fn balance_of(self: @TContractState, account: ContractAddress) -> Uint256;
+        ref self: TContractState,
+        sender: ContractAddress,
+        recipient: ContractAddress,
+        amount: u256
+    ) -> bool;
+
+    fn approve(
+        ref self: TContractState,
+        spender: ContractAddress,
+        amount: u256
+    ) -> bool;
 }
